@@ -1,0 +1,68 @@
+package main
+
+import (
+	"fmt"
+
+	"github.com/ramonskie/zeilen/deck"
+	"github.com/ramonskie/zeilen/game"
+)
+
+func main() {
+	// Initialize the game
+	mygame := game.InitializeGame(4)
+
+	// Play rounds until a winner is determined
+	for !game.IsGameOver(mygame) {
+		// Deal each player two cards
+		for _, player := range mygame.Players {
+			player.Hand = mygame.Deck.DrawCards(2)
+		}
+
+		// Prompt each player to play or fold
+		for _, player := range mygame.Players {
+			// Display the player's hand
+			fmt.Printf("Player %d, your hand is: %v\n", player.ID, player.Hand)
+
+			// Prompt the player to play or fold
+			var action string
+			for action != "play" && action != "fold" {
+				fmt.Printf("Player %d, do you want to play or fold? ", player.ID)
+				fmt.Scanln(&action)
+			}
+
+			if action == "fold" {
+				// If the player folds, reveal their hand and subtract the pot from their balance
+				fmt.Printf("Player %d has folded. Their hand was %v\n", player.ID, player.Hand)
+				player.Balance -= mygame.Pot
+				mygame.Pot = 0
+				// player who folds should be removed from winner calculation
+				player.Folded = true
+			} else {
+				// If the player plays, keep their hand hidden and add their credit to the pot
+				mygame.Pot += player.Credit
+				player.Credit = 0
+			}
+		}
+
+		// Determine the winner and distribute the pot
+		winner, points := game.DetermineWinner(mygame.Players)
+		if winner != nil {
+			fmt.Printf("Player %d wins the pot of %d credits with %d points!\n", winner.ID, mygame.Pot, points)
+			winner.Balance += mygame.Pot
+			mygame.Pot = 0
+		} else {
+			fmt.Println("No winner this round. The pot now contains", mygame.Pot, "credits.")
+		}
+
+		// Shuffle the deck and reset the players' hands
+		mygame.Deck.Shuffle()
+		for _, player := range mygame.Players {
+			player.Hand = []deck.Card{}
+		}
+	}
+
+	// Game over, determine the final winner
+	fmt.Println("game over")
+	// finalWinner := determineFinalWinner(game.Players)
+	// fmt.Printf("Game over! Player %d is the final winner with a balance of %d credits.\n", finalWinner.ID, finalWinner.Balance)
+}
